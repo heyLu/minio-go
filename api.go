@@ -65,6 +65,13 @@ type Client struct {
 
 	// Random seed.
 	random *rand.Rand
+
+	// BeforeRequestFunc is called before a request is executed.  This happens
+	// after the headers are set, but before the request is signed.
+	//
+	// It can be used to set custom headers, or otherwise modify the fields
+	// of the request.
+	BeforeRequestFunc func(*http.Request)
 }
 
 // Global constants.
@@ -580,6 +587,11 @@ func (c Client) newRequest(method string, metadata requestMetadata) (req *http.R
 	// set md5Sum for content protection.
 	if metadata.contentMD5Bytes != nil {
 		req.Header.Set("Content-Md5", base64.StdEncoding.EncodeToString(metadata.contentMD5Bytes))
+	}
+
+	// Pass the request to a user-specified callback.
+	if c.BeforeRequestFunc != nil {
+		c.BeforeRequestFunc(req)
 	}
 
 	// Sign the request for all authenticated requests.
